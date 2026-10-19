@@ -1,230 +1,81 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { QUIZ_SCENES, ARCHETYPES } from './data/quizData';
-import { ArchetypeProfile } from './types';
+import { QUIZ_SCENES } from './data/quizData';
 import { SceneIllustration } from './components/SceneIllustration';
-import { RotateCcw, QrCode, X, Copy, Check, Share2, ArrowRight } from 'lucide-react';
+import { subscribeVotes, submitVote, isVotingConfigured } from './lib/voting';
+
+type Choice = 'A' | 'B' | 'C';
+type Totals = Record<number, Record<Choice, number>>;
+const initial: Totals = { 1: { A: 0, B: 0, C: 0 }, 2: { A: 0, B: 0, C: 0 } };
+const discussion = [
+  { pro: 'Soros antiofídicos são recursos terapêuticos essenciais em envenenamentos graves; protocolos de bem-estar podem reduzir riscos.', contra: 'Imunização e coleta de plasma impõem encargos aos equinos; reduzir impactos e buscar alternativas continua sendo necessário.' },
+  { pro: 'A eCG pode facilitar protocolos de reprodução e manejo de rebanhos.', contra: 'O benefício é predominantemente produtivo, enquanto coletas em éguas prenhes podem impor riscos; há protocolos alternativos em alguns contextos.' }
+];
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<number>(0);
-  const [answers, setAnswers] = useState<('A' | 'B' | 'C')[]>([]);
-  const [isFinished, setIsFinished] = useState<boolean>(false);
-  const [showQrModal, setShowQrModal] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
-
-  const scene = QUIZ_SCENES[currentStep];
-
-  const handleSelectChoice = (choiceId: 'A' | 'B' | 'C') => {
-    const nextAnswers = [...answers, choiceId];
-    setAnswers(nextAnswers);
-
-    if (currentStep + 1 < QUIZ_SCENES.length) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      setIsFinished(true);
-    }
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, Choice>>({});
+  const [totals, setTotals] = useState<Totals>(initial);
+  const [qr, setQr] = useState(false);
+  const [presenter, setPresenter] = useState(new URLSearchParams(window.location.search).get('mode') === 'presenter');
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [showDiscussion, setShowDiscussion] = useState(false);
+  const scene = QUIZ_SCENES[step];
+  useEffect(() => {
+    if (!isVotingConfigured) return;
+    return subscribeVotes(setTotals, (message) => setStatus(message));
+  }, []);
+  const vote = async (choice: Choice) => {
+    if (busy || answers[scene.id]) return;
+    if (!isVotingConfigured) { setStatus('A votação coletiva ainda precisa ser configurada pelo apresentador.'); return; }
+    setBusy(true);
+    try {
+      await submitVote(scene.id, choice);
+      setAnswers(prev => ({ ...prev, [scene.id]: choice }));
+      setStatus('');
+      setShowDiscussion(true);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Não foi possível registrar o voto.');
+    } finally { setBusy(false); }
   };
-
-  const handleReset = () => {
-    setCurrentStep(0);
-    setAnswers([]);
-    setIsFinished(false);
-  };
-
-  // Determine profile based on answers
-  const getArchetype = (): ArchetypeProfile => {
-    const aCount = answers.filter((a) => a === 'A').length;
-    const bCount = answers.filter((a) => a === 'B').length;
-    const cCount = answers.filter((a) => a === 'C').length;
-
-    if (aCount >= 2) return ARCHETYPES.pragmatic;
-    if (cCount >= 2) return ARCHETYPES.idealist;
-    if (bCount >= 2) return ARCHETYPES.empathic;
-    return ARCHETYPES.empathic;
-  };
-
-  const archetype = getArchetype();
-
-  const handleCopy = () => {
-    const text = `Meu resultado no Dilema do Soro: *${archetype.title}*\n"${archetype.quote}"\n\n${archetype.diagnosis}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center px-4 py-8 sm:py-12 selection:bg-amber-500 selection:text-slate-950 font-sans">
-      
-      {/* Discreet QR Code for audience/presentation */}
-      <button
-        id="qr-trigger-btn"
-        onClick={() => setShowQrModal(true)}
-        className="fixed top-4 right-4 z-30 p-2.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-amber-400 transition-all shadow-lg backdrop-blur-md cursor-pointer"
-        title="QR Code para a turma"
-      >
-        <QrCode className="w-4 h-4" />
-      </button>
-
-      {/* Main Single-View Layout */}
-      <div className="w-full max-w-xl mx-auto">
-        <AnimatePresence mode="wait">
-          {!isFinished ? (
-            <motion.div
-              key={scene.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="flex flex-col"
-            >
-              {/* Scene Illustration Banner */}
-              <div className="relative w-full aspect-[2/1] sm:aspect-[2.4/1] rounded-2xl overflow-hidden mb-6 border border-slate-800 shadow-2xl bg-slate-900">
-                <SceneIllustration sceneId={scene.id} />
-                
-                {/* Step counter */}
-                <div className="absolute bottom-3 right-4 px-2.5 py-0.5 rounded-full bg-slate-950/70 border border-slate-800 text-[11px] font-mono text-slate-400">
-                  {currentStep + 1} / {QUIZ_SCENES.length}
-                </div>
-              </div>
-
-              {/* Case Title & Narrative */}
-              <div className="mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-2.5">
-                  {scene.title}
-                </h1>
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                  {scene.narrative}
-                </p>
-              </div>
-
-              {/* 3 Clickable Choices */}
-              <div className="space-y-3">
-                {scene.choices.map((choice) => (
-                  <button
-                    key={choice.id}
-                    id={`choice-${choice.id}-btn`}
-                    onClick={() => handleSelectChoice(choice.id)}
-                    className="w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-900/70 hover:bg-slate-850 hover:border-amber-500/50 transition-all duration-150 flex items-start gap-3.5 group cursor-pointer active:scale-[0.99]"
-                  >
-                    <div className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 group-hover:bg-amber-500 group-hover:text-slate-950 flex items-center justify-center font-bold text-xs shrink-0 transition-colors mt-0.5">
-                      {choice.id}
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold text-white group-hover:text-amber-300 transition-colors">
-                        {choice.text}
-                      </div>
-                      {choice.subtext && (
-                        <div className="text-xs text-slate-400 group-hover:text-slate-300 mt-1 leading-normal">
-                          {choice.subtext}
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex flex-col text-center"
-            >
-              {/* Badge & Title */}
-              <div className="mb-2 flex justify-center">
-                <span className="px-3.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold tracking-wider">
-                  {archetype.badge}
-                </span>
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2">
-                {archetype.title}
-              </h1>
-
-              <div className="text-xs text-slate-400 font-mono mb-4">
-                {archetype.subtitle}
-              </div>
-
-              <div className="italic text-amber-200/90 text-sm sm:text-base font-serif mb-6 px-4">
-                {archetype.quote}
-              </div>
-
-              {/* Diagnosis Box */}
-              <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 text-left mb-6 shadow-xl">
-                <div className="text-xs uppercase font-bold text-slate-400 tracking-wider mb-2">
-                  Seu Perfil Bioético:
-                </div>
-                <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
-                  {archetype.diagnosis}
-                </p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  id="share-btn"
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-xs font-semibold transition-all cursor-pointer"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-amber-400" />}
-                  <span>{copied ? 'Copiado!' : 'Compartilhar'}</span>
-                </button>
-
-                <button
-                  id="restart-btn"
-                  onClick={handleReset}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all cursor-pointer shadow-md shadow-amber-500/20"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Refazer</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* QR Code Modal */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-800 p-6 flex flex-col items-center text-center shadow-2xl">
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="text-xs uppercase font-bold text-amber-400 tracking-wider mb-1">
-              Participar no Celular
-            </div>
-            <h2 className="text-lg font-bold text-white mb-4">
-              Escaneie o QR Code
-            </h2>
-
-            <div className="p-3 bg-white rounded-2xl shadow-xl mb-4">
-              <QRCodeSVG
-                value={typeof window !== 'undefined' ? window.location.href : 'https://ai.studio'}
-                size={180}
-                level="M"
-              />
-            </div>
-
-            <p className="text-xs text-slate-400 mb-4">
-              Abra a câmera do celular para responder diretamente no seu aparelho.
-            </p>
-
-            <button
-              onClick={() => setShowQrModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer"
-            >
-              Fechar
-            </button>
-          </div>
+  const total = Object.values(totals[scene.id] ?? initial[1]).reduce((a,b) => a+b,0);
+  const baseUrl = window.location.origin + window.location.pathname;
+  return <main className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8 font-sans">
+    <div className="max-w-2xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <div><div className="text-xs uppercase tracking-widest text-amber-400">Ética e bem-estar animal</div><h1 className="text-xl font-bold">Duas escolhas difíceis</h1></div>
+        <div className="flex gap-2">
+          <button onClick={() => setQr(true)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm">QR Code</button>
+          <button onClick={() => setPresenter(!presenter)} className="rounded-lg border border-slate-700 px-3 py-2 text-xs">{presenter ? 'Modo aluno' : 'Apresentar'}</button>
         </div>
-      )}
-    </main>
-  );
+      </div>
+      <div className="rounded-2xl overflow-hidden border border-slate-800 mb-5 h-40 sm:h-56"><SceneIllustration sceneId={scene.id}/></div>
+      <div className="text-xs text-amber-400 mb-2">CASO {step+1} DE 2</div>
+      <h2 className="text-2xl font-bold mb-3">{scene.title}</h2>
+      <p className="text-slate-300 mb-6 leading-relaxed">{scene.narrative}</p>
+      {!presenter && <div className="space-y-3 mb-6">{scene.choices.map(choice => <button key={choice.id} disabled={busy || !!answers[scene.id]} onClick={() => vote(choice.id)} className={`w-full text-left p-4 rounded-xl border transition ${answers[scene.id] === choice.id ? 'border-amber-400 bg-amber-500/15' : 'border-slate-700 bg-slate-900 hover:border-amber-500/50'} disabled:cursor-default`}>
+        <div className="font-semibold">{choice.id}. {choice.text}</div><div className="text-xs text-slate-400 mt-1">{choice.subtext}</div>
+      </button>)}</div>}
+      {status && <p role="alert" className="text-amber-300 text-sm mb-4">{status}</p>}
+      {(presenter || answers[scene.id]) && <section className="bg-slate-900 border border-slate-800 rounded-2xl p-5 mb-5">
+        <h3 className="font-bold mb-3">Votação da turma <span className="text-slate-400 text-sm font-normal">({total} {total === 1 ? 'voto' : 'votos'})</span></h3>
+        {scene.choices.map(choice => { const count=totals[scene.id]?.[choice.id] ?? 0; const pct=total ? Math.round(count*100/total) : 0; return <div key={choice.id} className="mb-3"><div className="flex justify-between text-sm mb-1"><span>{choice.id}. {choice.text}</span><span>{pct}% · {count}</span></div><div className="bg-slate-800 rounded-full h-2 overflow-hidden"><div className="bg-amber-400 h-full transition-all" style={{width:`${pct}%`}}/></div></div>; })}
+        <p className="text-xs text-slate-400">Resultados agregados em tempo real. Sem nomes ou e-mails.</p>
+      </section>}
+      {(presenter || answers[scene.id]) && <div className="mb-5">
+        <button onClick={() => setShowDiscussion(!showDiscussion)} className="text-amber-300 text-sm font-semibold mb-3">{showDiscussion ? 'Ocultar' : 'Revelar'} argumentos para debate</button>
+        {showDiscussion && <div className="grid gap-3 sm:grid-cols-2">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4"><h4 className="font-semibold mb-2">Por que a prática existe?</h4><p className="text-sm text-slate-300">{discussion[step].pro}</p></div>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4"><h4 className="font-semibold mb-2">O que a questiona?</h4><p className="text-sm text-slate-300">{discussion[step].contra}</p></div>
+        </div>}
+      </div>}
+      <div className="flex gap-3 items-center">
+        {step > 0 && <button onClick={() => {setStep(0);setShowDiscussion(false)}} className="px-4 py-3 rounded-xl bg-slate-800">Caso anterior</button>}
+        {step < 1 ? <button onClick={() => {setStep(1);setShowDiscussion(false)}} className="px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold">Próximo dilema →</button> : <p className="text-sm text-slate-300 italic">A finalidade do uso animal muda a sua decisão?</p>}
+      </div>
+      {presenter && <p className="mt-5 text-xs text-slate-400">Modo apresentador: projete esta tela e abra o QR Code. Os alunos votam nos próprios celulares. O controle de telas é individual; avance verbalmente com a turma.</p>}
+    </div>
+    {qr && <div className="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4" onClick={() => setQr(false)}><div className="bg-slate-900 rounded-2xl p-7 text-center border border-slate-700" onClick={e=>e.stopPropagation()}><h2 className="text-lg font-bold mb-4">Participe pelo celular</h2><div className="bg-white rounded-xl p-4 inline-block"><QRCodeSVG value={baseUrl} size={220}/></div><p className="text-sm text-slate-300 mt-4">Respostas sem nome ou e-mail</p><button className="mt-4 text-amber-300" onClick={() => setQr(false)}>Fechar</button></div></div>}
+  </main>;
 }
