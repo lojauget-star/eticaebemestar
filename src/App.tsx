@@ -76,6 +76,17 @@ export default function App() {
         {step > 0 && <button onClick={() => {setStep(step - 1);setShowDiscussion(false)}} className="px-4 py-3 rounded-xl bg-slate-800">Caso anterior</button>}
         {step < QUIZ_SCENES.length - 1 ? <button onClick={() => {setStep(step + 1);setShowDiscussion(false)}} className="px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold">Próximo dilema →</button> : <p className="text-sm text-slate-300 italic">A finalidade do uso animal muda a sua decisão?</p>}
       </div>
+      {step === QUIZ_SCENES.length - 1 && (presenter || answers[4]) && <section className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5">
+        <div className="text-xs uppercase tracking-widest text-amber-300 mb-2">Reflexão final</div>
+        <h3 className="font-bold text-lg mb-3">O que mudou quando mudou a finalidade?</h3>
+        {!presenter && answers[3] && answers[4] && <p className="text-sm text-slate-200 mb-3">Na decisão sobre a lei do soro, você escolheu <strong>{answers[3]}</strong>. No caso da eCG, escolheu <strong>{answers[4]}</strong>. {answers[3] === answers[4] ? 'Você manteve a mesma alternativa, mas isso não significa necessariamente que usou o mesmo critério.' : 'Você escolheu alternativas diferentes. Isso pode indicar que a finalidade do uso animal mudou o peso dos argumentos para você.'}</p>}
+        <p className="text-sm text-slate-200 mb-3">Salvar uma vida e aumentar a eficiência produtiva oferecem justificativas diferentes para utilizar animais. Onde você colocaria o limite?</p>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-xl bg-slate-900 p-3"><div className="text-slate-400 text-xs mb-1">Lei sobre o soro</div><div className="font-semibold">{Object.values(totals[3] ?? initial[1]).reduce((a,b)=>a+b,0)} votos</div></div>
+          <div className="rounded-xl bg-slate-900 p-3"><div className="text-slate-400 text-xs mb-1">Uso da eCG</div><div className="font-semibold">{Object.values(totals[4] ?? initial[1]).reduce((a,b)=>a+b,0)} votos</div></div>
+        </div>
+        <p className="text-xs text-slate-400 mt-3">As alternativas A, B e C não têm exatamente o mesmo significado nos dois casos. Os totais não permitem identificar quem mudou de posição; a comparação individual aparece somente no próprio aparelho.</p>
+      </section>}
       {presenter && <p className="mt-5 text-xs text-slate-400">Modo apresentador: projete esta tela e abra o QR Code. Os alunos votam nos próprios celulares. O controle de telas é individual; avance verbalmente com a turma.</p>}
     </div>
     {qr && <div className="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4" onClick={() => setQr(false)}><div className="bg-slate-900 rounded-2xl p-7 text-center border border-slate-700" onClick={e=>e.stopPropagation()}><h2 className="text-lg font-bold mb-4">Participe pelo celular</h2><div className="bg-white rounded-xl p-4 inline-block"><QRCodeSVG value={baseUrl} size={220}/></div><p className="text-sm text-slate-300 mt-4">Respostas sem nome ou e-mail</p><button className="mt-4 text-amber-300" onClick={() => setQr(false)}>Fechar</button></div></div>}
