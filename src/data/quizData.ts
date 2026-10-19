@@ -33,8 +33,8 @@ export const QUIZ_SCENES: QuestionScene[] = [
   },
   {
     id: 4, timeTag: 'Um segundo dilema', theme: 'indigo',
-    title: '4. E quando a finalidade é produtiva?',
-    narrative: 'A gonadotrofina coriônica equina (eCG), extraída do sangue de éguas prenhes, é utilizada em protocolos de reprodução de animais de produção. A coleta pode envolver riscos de bem-estar. A finalidade agora não é salvar uma pessoa envenenada, mas facilitar o manejo reprodutivo. Sua posição muda?',
+    title: '4. Você manteria o mesmo princípio?',
+    narrative: 'A gonadotrofina coriônica equina (eCG), extraída do sangue de éguas prenhes, é utilizada em protocolos de reprodução de animais de produção. A coleta pode envolver riscos de bem-estar. Você acaba de decidir sobre o uso de cavalos para salvar vidas. Agora o benefício é predominantemente produtivo, não uma emergência médica. Se fosse responsável por autorizar essa prática, qual decisão tomaria?',
     choices: [
       { id: 'A', text: 'Aceito a prática sob fiscalização rigorosa.', subtext: 'O benefício produtivo pode justificar seu uso com proteção efetiva às éguas.' },
       { id: 'B', text: 'Aceito apenas quando não houver alternativa viável.', subtext: 'Para esse benefício, a exigência de justificativa deve ser maior.' },
