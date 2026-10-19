@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /polls/{pollId}/votes/{voteId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && voteId.matches('^' + request.auth.uid + '_[12]$')
+        && request.resource.data.keys().hasOnly(['question', 'choice', 'createdAt'])
+        && request.resource.data.question in [1, 2]
+        && voteId == request.auth.uid + '_' + string(request.resource.data.question)
+        && request.resource.data.choice in ['A','B','C']
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}
