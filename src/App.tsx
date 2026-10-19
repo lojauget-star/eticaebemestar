@@ -6,9 +6,11 @@ import { subscribeVotes, submitVote, isVotingConfigured } from './lib/voting';
 
 type Choice = 'A' | 'B' | 'C';
 type Totals = Record<number, Record<Choice, number>>;
-const initial: Totals = { 1: { A: 0, B: 0, C: 0 }, 2: { A: 0, B: 0, C: 0 } };
+const initial: Totals = { 1: { A: 0, B: 0, C: 0 }, 2: { A: 0, B: 0, C: 0 }, 3: { A: 0, B: 0, C: 0 }, 4: { A: 0, B: 0, C: 0 } };
 const discussion = [
   { pro: 'Soros antiofídicos são recursos terapêuticos essenciais em envenenamentos graves; protocolos de bem-estar podem reduzir riscos.', contra: 'Imunização e coleta de plasma impõem encargos aos equinos; reduzir impactos e buscar alternativas continua sendo necessário.' },
+  { pro: 'O soro salva vidas e sua produção pode ocorrer com protocolos de bem-estar e acompanhamento veterinário.', contra: 'A importância terapêutica não elimina o dever de reduzir os procedimentos e investir em métodos alternativos.' },
+  { pro: 'Manter a produção evita o risco de desabastecimento de um tratamento essencial.', contra: 'Uma política de transição com metas pode incentivar alternativas sem suspender o acesso ao soro.' },
   { pro: 'A eCG pode facilitar protocolos de reprodução e manejo de rebanhos.', contra: 'O benefício é predominantemente produtivo, enquanto coletas em éguas prenhes podem impor riscos; há protocolos alternativos em alguns contextos.' }
 ];
 
@@ -44,14 +46,14 @@ export default function App() {
   return <main className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8 font-sans">
     <div className="max-w-2xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <div><div className="text-xs uppercase tracking-widest text-amber-400">Ética e bem-estar animal</div><h1 className="text-xl font-bold">Duas escolhas difíceis</h1></div>
+        <div><div className="text-xs uppercase tracking-widest text-amber-400">Ética e bem-estar animal</div><h1 className="text-xl font-bold">O dilema do soro</h1></div>
         <div className="flex gap-2">
           <button onClick={() => setQr(true)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm">QR Code</button>
           <button onClick={() => setPresenter(!presenter)} className="rounded-lg border border-slate-700 px-3 py-2 text-xs">{presenter ? 'Modo aluno' : 'Apresentar'}</button>
         </div>
       </div>
       <div className="rounded-2xl overflow-hidden border border-slate-800 mb-5 h-40 sm:h-56"><SceneIllustration sceneId={scene.id}/></div>
-      <div className="text-xs text-amber-400 mb-2">CASO {step+1} DE 2</div>
+      <div className="text-xs text-amber-400 mb-2">DECISÃO {step+1} DE {QUIZ_SCENES.length}</div>
       <h2 className="text-2xl font-bold mb-3">{scene.title}</h2>
       <p className="text-slate-300 mb-6 leading-relaxed">{scene.narrative}</p>
       {!presenter && <div className="space-y-3 mb-6">{scene.choices.map(choice => <button key={choice.id} disabled={busy || !!answers[scene.id]} onClick={() => vote(choice.id)} className={`w-full text-left p-4 rounded-xl border transition ${answers[scene.id] === choice.id ? 'border-amber-400 bg-amber-500/15' : 'border-slate-700 bg-slate-900 hover:border-amber-500/50'} disabled:cursor-default`}>
@@ -71,8 +73,8 @@ export default function App() {
         </div>}
       </div>}
       <div className="flex gap-3 items-center">
-        {step > 0 && <button onClick={() => {setStep(0);setShowDiscussion(false)}} className="px-4 py-3 rounded-xl bg-slate-800">Caso anterior</button>}
-        {step < 1 ? <button onClick={() => {setStep(1);setShowDiscussion(false)}} className="px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold">Próximo dilema →</button> : <p className="text-sm text-slate-300 italic">A finalidade do uso animal muda a sua decisão?</p>}
+        {step > 0 && <button onClick={() => {setStep(step - 1);setShowDiscussion(false)}} className="px-4 py-3 rounded-xl bg-slate-800">Caso anterior</button>}
+        {step < QUIZ_SCENES.length - 1 ? <button onClick={() => {setStep(step + 1);setShowDiscussion(false)}} className="px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold">Próximo dilema →</button> : <p className="text-sm text-slate-300 italic">A finalidade do uso animal muda a sua decisão?</p>}
       </div>
       {presenter && <p className="mt-5 text-xs text-slate-400">Modo apresentador: projete esta tela e abra o QR Code. Os alunos votam nos próprios celulares. O controle de telas é individual; avance verbalmente com a turma.</p>}
     </div>
