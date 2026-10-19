@@ -1,0 +1,6 @@
+{
+  "name": "Quiz Bioético: Faltam 3 Horas",
+  "description": "Storytelling interativo e teste de perfil ético sobre o dilema do soro antiofídico e o uso de animais em emergências médicas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
