@@ -19,7 +19,7 @@ async function anonymousUid(): Promise<string> {
   return authPromise;
 }
 export async function submitVote(question: number, choice: 'A' | 'B' | 'C') {
-  if (!db || ![1,2].includes(question)) throw new Error('Votação indisponível.');
+  if (!db || ![1,2,3,4].includes(question)) throw new Error('Votação indisponível.');
   const uid = await anonymousUid();
   // One immutable document per anonymous user and question.
   await setDoc(doc(db, 'polls', pollId, 'votes', `${uid}_${question}`), {
@@ -33,8 +33,8 @@ export function subscribeVotes(onChange: (totals: Record<number, Record<'A'|'B'|
   anonymousUid().then(() => {
     if (cancelled || !db) return;
     unsubscribe = onSnapshot(collection(db, 'polls', pollId, 'votes'), snapshot => {
-      const counts: Record<number, Record<'A'|'B'|'C',number>> = { 1:{A:0,B:0,C:0}, 2:{A:0,B:0,C:0} };
-      snapshot.forEach(item => { const vote=item.data(); if ((vote.question===1 || vote.question===2) && ['A','B','C'].includes(vote.choice)) counts[vote.question][vote.choice as 'A'|'B'|'C']++; });
+      const counts: Record<number, Record<'A'|'B'|'C',number>> = { 1:{A:0,B:0,C:0}, 2:{A:0,B:0,C:0}, 3:{A:0,B:0,C:0}, 4:{A:0,B:0,C:0} };
+      snapshot.forEach(item => { const vote=item.data(); if ([1,2,3,4].includes(vote.question) && ['A','B','C'].includes(vote.choice)) counts[vote.question][vote.choice as 'A'|'B'|'C']++; });
       onChange(counts);
     }, () => onError('Não foi possível carregar os resultados. Verifique as regras do Firestore.'));
   }).catch(() => onError('Falha na autenticação anônima. Ative Anonymous no Firebase Authentication.'));
